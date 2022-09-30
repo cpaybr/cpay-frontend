@@ -23,7 +23,7 @@
                 label="form.label.from_account"/>
             </app-form-item>
 
-            <!-- <app-form-item prop="to">
+            <app-form-item prop="to">
               <app-custom-select
                 v-model="form.to"
                 label="form.label.name_or_phone_number"
@@ -47,53 +47,18 @@
                     @click="selectTemplate(profileContacts.loginPhone, setValueManual)"/>
                 </template>
               </app-custom-select>
-            </app-form-item> -->
-
-            <app-form-item
-              prop="amount">
-              <app-input
-                v-model.trim="form.iso"
-                name="amount"
-                autocomplete="off"
-                label="Country Code"
-                placeholder="Country Code"/>
             </app-form-item>
 
             <app-form-item
               prop="amount">
               <app-input
-                v-model.trim="form.number"
+                v-model.trim="form.amount"
                 name="amount"
+                size="big"
                 autocomplete="off"
-                v-on:blur="getPackages"
-                label="Recipient Number"
-                placeholder="Recipient Number"/>
+                label="form.label.payment_amount"
+                placeholder="placeholder.input.input_amount"/>
             </app-form-item>
-            
-          
-            <template>
-            <app-select
-              v-model="form.amount"
-              full-width
-              is-custom
-              value-key="serial"
-              size="size"
-              :placeholder="placeholder"
-              :disabled="disabled"
-              :label="label"
-              :option-value="value"
-              :options="price"
-              :option-label="() => ''">
-              <template #prefix="{ currentItem }">
-                <app-select-custom-option
-                  v-if="currentItem"
-          
-                  :title="currentItem"
-              />
-              </template>
-            
-            </app-select>
-          </template>
 
             <operation-commission
               class="mb-36"
@@ -126,7 +91,6 @@
           </div>
         </transition-group>
       </app-form-wrapper>
-
       <app-modal
         ref="successModal"
         is-centred
@@ -140,28 +104,13 @@
             @confirm="onSubmit"/>
         </template>
       </app-modal>
-
-      <app-modal
-        ref="errorModal"
-        is-centred
-        is-full-width>
-        <template #default="{onSubmit}">
-          <app-info-modal
-            title="Something went wrong"
-            subtitle="Couldn't process with top up!"
-            :type="infoModalTypes.warning"
-            :is-cancel-visible="false"
-            @confirm="onSubmit"/>
-        </template>
-      </app-modal>
-
     </template>
   </app-step-controller>
 </template>
 
 <script lang="ts">
 import {
-  Vue, Component, Ref, Watch,Emit, Prop
+  Vue, Component, Ref, Watch,
 } from 'vue-property-decorator';
 import { getModule } from 'vuex-module-decorators';
 import { debounce } from 'lodash';
@@ -177,17 +126,15 @@ import AppModal from '@/components/ui-kit/modals/app-modal.vue';
 import { IPlainObject } from '@/types/interfaces';
 import AppCustomSelect from '@/components/ui-kit/app-custom-select/app-custom-select.vue';
 import AppCustomSelectOption from '@/components/ui-kit/app-custom-select/app-custom-select-option.vue';
-import AppSelect from '@/components/ui-framework/app-select/app-select.vue';
 import { OnChangeRequiredValidationRule, SimpleNumberValidationRule } from '@/rules/validation';
 import AccountSelect from '@/modules/user-dashboard/components/account-select.vue';
 import MobileTransferDetails
-  from '@/modules/user-dashboard/pages/payments/make-payment/components/mobile-transfer-details.vue';
+  from '@/modules/payments/make-payment/components/mobile-transfer-details.vue';
 import { Profile } from '@/store/modules';
 import OperationCommission from '@/modules/user-dashboard/components/operation-commission.vue';
 import { categoryColors } from '@/components/ui-kit/colors';
 import config from '@/config';
 import { getProp } from '@/utils';
-import axios from "axios";
 
 @Component({
   components: {
@@ -203,7 +150,6 @@ import axios from "axios";
     AppFormItem,
     AppFormWrapper,
     AppSelectCustomOption,
-    AppSelect,
     AppInfoModal,
     AppModal,
   },
@@ -213,7 +159,6 @@ export default class MobileTopUp extends Vue {
     @Ref('form') readonly appForm!: AppForm;
 
     @Ref('successModal') readonly successModal!: AppModal;
-    @Ref('errorModal') readonly errorModal!: AppModal;
 
     protected isLoading: boolean = false;
 
@@ -225,12 +170,7 @@ export default class MobileTopUp extends Vue {
 
     readonly emptyChar: string = config.emptyChar;
 
-    @Prop() readonly value!: any;
-
     protected getProp = getProp;
-    protected price = [];
-    // @Prop({ type: Array, default: null }) readonly coins!: Array<[]>;
-
 
     protected form: IPlainObject = {
       from: '',
@@ -244,9 +184,6 @@ export default class MobileTopUp extends Vue {
       amount: SimpleNumberValidationRule(),
     };
 
-  //   protected get priceList(){
-  //   return this.price ? this.price : this.userCoinsModule.mappedCoins;
-  // }
     protected get isCommissionCalculated(): boolean {
       return !!this.commission?.paymentToolDetails;
     }
@@ -267,76 +204,16 @@ export default class MobileTopUp extends Vue {
       this.debouncedCommissionCalculation();
     }
 
-    protected async getPackages(): Promise<void> {
-      axios.get('https://social-media-sharing.discoveritech.com/airtime', {
-      }).then(function (response) {
-          sessionStorage.setItem("top_token", response.data.access_token);
-      }).catch(function (error) {
-          console.log(error);
-      });
-
-      // axios.get("https://social-media-sharing.discoveritech.com/airtime/get-carrier?recipientNumber="+this.form.iso+this.form.number+"&token="+sessionStorage.getItem("top_token"), {
-      // }).then(function (response) {
-      //     if(response) {
-      //       // console.log(response.data.fixedAmounts);
-      //       var price = response.data.fixedAmounts;
-      //       console.log(price);
-      //       sessionStorage.setItem("get_carrier", response.data.operatorId);
-      //     }
-      // }).catch(function (error) {
-      //     console.log(error);
-      // });
-
-
-      let res2 = await axios.get("https://social-media-sharing.discoveritech.com/airtime/get-carrier?recipientNumber="+this.form.iso+this.form.number+"&token="+sessionStorage.getItem("top_token"), {
-      })
-
-      if(res2) {
-            // console.log(response.data.fixedAmounts);
-            this.price = res2.data.fixedAmounts;
-            console.log(this.price);
-            sessionStorage.setItem("get_carrier", res2.data.operatorId);
-          }
-     
-
-    }
-
     protected async handleForm(onNextStep: Function): Promise<void> {
-      // const isValid: boolean = await this.appForm.validate();
+      const isValid: boolean = await this.appForm.validate();
 
-      // if (!isValid) return;
+      if (!isValid) return;
 
-      // if (this.isCommissionCalculated) {
-      //   onNextStep();
-      //   return;
-      // }
-      // await this.onCalculateCommission();
-
-      var ranOperaotr = Math.floor(100 + Math.random() * 900);
-      axios.get('https://social-media-sharing.discoveritech.com/airtime', {
-      }).then(function (response) {
-          sessionStorage.setItem("top_token", response.data.access_token);
-      }).catch(function (error) {
-          console.log(error);
-      });
-
-      axios.get("https://social-media-sharing.discoveritech.com/airtime/get-carrier?recipientNumber="+this.form.iso+this.form.number+"&token="+sessionStorage.getItem("top_token"), {
-      }).then(function (response) {
-          if(response) {
-            sessionStorage.setItem("get_carrier", response.data.operatorId);
-          }
-      }).catch(function (error) {
-          console.log(error);
-      });
-
-      // console.log("This is main code function! " + ranOperaotr + this.form.iso + " Number " + this.form.number + " AMOUNT " + this.form.amount);
-      let res = await axios.post("https://social-media-sharing.discoveritech.com/airtime/top-up?amount="+this.form.amount+"&recipientNumber="+this.form.number+"&carrier="+sessionStorage.getItem("get_carrier")+"&operatorId="+ranOperaotr+"&token="+sessionStorage.getItem("top_token"), {});
-      if(res.data.status == "SUCCESSFUL"){
-        console.log(res.data);
-        await this.successModal.open();
-      }else{
-        await this.errorModal.open();
+      if (this.isCommissionCalculated) {
+        onNextStep();
+        return;
       }
+      await this.onCalculateCommission();
     }
 
     protected debouncedCommissionCalculation = debounce(this.onCalculateCommission, 500)
